@@ -2,24 +2,40 @@
 <html>
 <head>
     <title>Canvas Digit Draw - Prediction with Probabilities</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             background-color: #222;
             color: white;
             text-align: center;
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        h2 {
+            margin: 20px 10px;
+            font-size: 24px;
         }
         .canvas-wrapper {
             display: inline-block;
             transform: scale(1.8);
             transform-origin: top left;
             margin-top: 20px;
-            margin-bottom: 120px; /* Prevents overlap with predictions */
+            margin-bottom: 120px;
+        }
+        @media (max-width: 600px) {
+            .canvas-wrapper {
+                transform: scale(1.1);
+            }
+            h2 {
+                font-size: 20px;
+            }
         }
         canvas {
             background-color: black;
             border: 2px solid #555;
             cursor: crosshair;
+            touch-action: none;
         }
         button {
             margin: 10px;
@@ -34,10 +50,11 @@
             margin-top: 15px;
             color: lightgreen;
             font-family: monospace;
-            max-width: 800px;
+            max-width: 90%;
             margin-left: auto;
             margin-right: auto;
             word-wrap: break-word;
+            overflow-wrap: break-word;
         }
     </style>
 </head>
@@ -66,6 +83,7 @@
     let isDrawing = false;
     let predictionTimeout = null;
 
+    // Desktop mouse events
     canvas.addEventListener('mousedown', () => { isDrawing = true; });
     canvas.addEventListener('mouseup', () => {
         isDrawing = false;
@@ -78,6 +96,23 @@
     });
     canvas.addEventListener('mousemove', draw);
 
+    // Mobile touch events
+    canvas.addEventListener('touchstart', e => {
+        e.preventDefault();
+        isDrawing = true;
+        drawTouch(e);
+    });
+    canvas.addEventListener('touchend', e => {
+        e.preventDefault();
+        isDrawing = false;
+        ctx.beginPath();
+        triggerPrediction();
+    });
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        drawTouch(e);
+    });
+
     function draw(e) {
         if (!isDrawing) return;
         ctx.lineWidth = 20;
@@ -87,6 +122,23 @@
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(e.offsetX, e.offsetY);
+        triggerPrediction();
+    }
+
+    function drawTouch(e) {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
 
         triggerPrediction();
     }
@@ -131,11 +183,9 @@
         .then(res => res.json())
         .then(data => {
             document.getElementById('result').innerText = data.prediction;
-
             let probs = "Probabilities: [ ";
             probs += data.probabilities.map(p => p.toFixed(3)).join(', ');
             probs += " ]";
-
             document.getElementById('probabilities').innerText = probs;
         });
     }
