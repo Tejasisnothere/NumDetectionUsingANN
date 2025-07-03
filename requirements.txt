@@ -1,5 +1,4 @@
-pickle
-seborn
+seaborn
 pandas
 sklearn
 tensorflow
