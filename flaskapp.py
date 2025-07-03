@@ -5,7 +5,7 @@ from scipy.ndimage import gaussian_filter, center_of_mass, shift
 
 app = Flask(__name__)
 
-with open('./Numdetection/model.pkl', 'rb') as f:
+with open('./model.pkl', 'rb') as f:
     gw, gb = pickle.load(f)
 
 @app.route('/')
