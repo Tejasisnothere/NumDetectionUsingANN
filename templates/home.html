@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Digit Draw - Prediction with Probabilities</title>
+    <style>
+        body {
+            background-color: #222;
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .canvas-wrapper {
+            display: inline-block;
+            transform: scale(1.8);
+            transform-origin: top left;
+            margin-top: 20px;
+            margin-bottom: 120px; /* Prevents overlap with predictions */
+        }
+        canvas {
+            background-color: black;
+            border: 2px solid #555;
+            cursor: crosshair;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        #result {
+            font-size: 24px;
+            color: yellow;
+        }
+        #probabilities {
+            margin-top: 15px;
+            color: lightgreen;
+            font-family: monospace;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Draw a Digit (Live Prediction with Probabilities)</h2>
+
+<div class="canvas-wrapper">
+    <canvas id="canvas" width="280" height="280"></canvas>
+</div>
+
+<div style="margin-top: 100px">
+    <button onclick="clearCanvas()">Clear</button>
+</div>
+
+<h3 style="margin-top: 150px;">Prediction: <span id="result">-</span></h3>
+
+<div id="probabilities"></div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let isDrawing = false;
+    let predictionTimeout = null;
+
+    canvas.addEventListener('mousedown', () => { isDrawing = true; });
+    canvas.addEventListener('mouseup', () => {
+        isDrawing = false;
+        ctx.beginPath();
+        triggerPrediction();
+    });
+    canvas.addEventListener('mouseout', () => {
+        isDrawing = false;
+        ctx.beginPath();
+    });
+    canvas.addEventListener('mousemove', draw);
+
+    function draw(e) {
+        if (!isDrawing) return;
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(e.offsetX, e.offsetY);
+
+        triggerPrediction();
+    }
+
+    function clearCanvas() {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('result').innerText = '-';
+        document.getElementById('probabilities').innerText = '';
+    }
+
+    function triggerPrediction() {
+        if (predictionTimeout) clearTimeout(predictionTimeout);
+        predictionTimeout = setTimeout(sendMatrix, 500);
+    }
+
+    function sendMatrix() {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const matrix = [];
+        const scale = 10;
+
+        for (let y = 0; y < 28; y++) {
+            for (let x = 0; x < 28; x++) {
+                let sum = 0;
+                for (let dy = 0; dy < scale; dy++) {
+                    for (let dx = 0; dx < scale; dx++) {
+                        const px = ((y * scale + dy) * canvas.width + (x * scale + dx)) * 4;
+                        sum += data[px];
+                    }
+                }
+                const avg = sum / (scale * scale);
+                matrix.push(avg);
+            }
+        }
+
+        fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ matrix })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('result').innerText = data.prediction;
+
+            let probs = "Probabilities: [ ";
+            probs += data.probabilities.map(p => p.toFixed(3)).join(', ');
+            probs += " ]";
+
+            document.getElementById('probabilities').innerText = probs;
+        });
+    }
+</script>
+
+</body>
+</html>
