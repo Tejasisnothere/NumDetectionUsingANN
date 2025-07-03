@@ -1,0 +1,8 @@
+pickle
+seborn
+pandas
+sklearn
+tensorflow
+matplotlib
+flask 
+scipy

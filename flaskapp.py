@@ -42,8 +42,6 @@ def predictProbabilities(inp, ws, bs):
     ro1 = inp @ ws[0].T + bs[0]
     ao1 = leakyRELU(ro1)
     ro2 = ao1 @ ws[1].T + bs[1]
-
-    # Softmax for probabilities
     exps = np.exp(ro2 - np.max(ro2))
     probs = exps / np.sum(exps)
     return probs
@@ -61,4 +59,4 @@ def predictOutput(inp, ws, bs):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
